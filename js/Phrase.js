@@ -8,11 +8,11 @@ class Phrase {
     }
 
     addPhraseToDisplay(){
-        let phraseUl = getDomElement('#phrase').firstChild;
-        this.phrase.forEach(letter => {
+        let phraseUl = getDomElement('#phrase').children[0];
+        this.phrase.split('').forEach(character => {
             let phraseLetter = document.createElement('li');
-            phraseLetter.innerHTML = letter;
-            phraseLetter.className = letter !== " " ? `hide letter ${letter}` : "space";
+            phraseLetter.innerHTML = character;
+            phraseLetter.className = character !== " " ? `hide letter ${character}` : "space";
             phraseUl.append(phraseLetter);
         });
     }
@@ -25,10 +25,10 @@ class Phrase {
 
     //reveals the letter on the board that matches the player's selection
     showMatchedLetter(chosenLetter){
-        let phraseUl = getDomElement('#phrase').firstChild;
-        Array(phraseUl.children).forEach(letter => {
+        const phraseLetters = document.querySelectorAll('.letter');
+        phraseLetters.forEach(letter => {
             if (chosenLetter === letter.textContent) {
-                letter.className = `letter ${chosenLetter}`;
+                letter.className = `show letter ${chosenLetter}`;
             }
         });
 

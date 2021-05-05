@@ -6,42 +6,74 @@ class Game {
     constructor(phrases){
         this.missed = 0;
         this.activePhrase = null;
-        this.phrases = validatePhraseList(phrases);
+        this.phrases = this.validatePhraseList(phrases);
     }
 
     validatePhraseList(phrases){
-        const phraseObjects = phrases
-                                .filter(phrase => /^[a-zA-Z]+/.test(phrase))
-                                .map(phrase => new Phrase(phrase));
-        return phraseObjects;
+        return phrases.filter(phrase => /^[a-zA-Z]+/.test(phrase))
+                      .map(phrase => new Phrase(phrase));
     }
 
+    //The index of the active phrase is saved and used as a reference
+    //This ensures that there is a single point of truth.
     getRandomPhrase(){
         return Math.floor(Math.random() * this.phrases.length);
     }
-
+    
+    //Replaces the last living heart in the list with a lost heart :(
     removeLife(){
-        //Removes a heart image
-        const lostLife = querySelectorAll(".tries");
-        for (let i = lostLife.length ; i >= 0 ; i++) {
-            if (lostlife[i].src === "images/liveHeart.png") {
-                lostlife[i].src = "images/lostHeart.png";
+        const lives = document.querySelectorAll(".tries");
+        for (let i = lives.length - 1 ; i >= 0 ; i--) {
+            if ( lives[i].firstChild.src.includes("images/liveHeart.png") ) {
+                lives[i].firstChild.src = "images/lostHeart.png";
                 break;
             }
         }
         this.missed += 1;
-        if (this.missed === 5) gameOver();
+        if (this.missed === 5) this.gameOver();
     }
 
+    //Rest gameboard to prepare for next round
     gameOver(){
+        //set fireworks background of user won
         const startOverlay = getDomElement('#overlay');
         startOverlay.style.display = 'flex';
-        startOverlay.className = this.missed < 5 ? "win" : "lose";
-        const phraseElement = getDomElement('#phrase');
-        
-        while (phraseElement.firstChild) {
-            phraseElement.removeChild(phraseElement.firstChild);
+
+        if (this.missed === 5) {
+            startOverlay.className = "start lose";
+        } else {
+            setInterval(() => {
+                let x = Math.floor(Math.random() * 256);
+                let y = Math.floor(Math.random() * 256);
+                let z = Math.floor(Math.random() * 256);
+                startOverlay.style.backgroundColor = `rgb(${x}, ${y}, ${z})`;
+            }, 900);
+            startOverlay.className = "start win";
         }
+
+        //display result message
+        const resultMessage = getDomElement('#game-over-message');
+        resultMessage.textContent = this.missed === 5 ? 
+                                        "Better luck next time :(" : 
+                                        "Congratulations, you figured it out!";
+        
+        //Remove previous phrase
+        const phraseUlElement = getDomElement('#phrase').children[0];
+        removeChildren(phraseUlElement);
+
+        //Reset keys to be unselected
+        const keys = document.querySelectorAll('.key');
+        keys.forEach(key => {
+            key.className = "key";
+        });
+
+        //Reset missed to 0 and remove all lost heart images
+        // this.missed = 0
+        const lives = document.querySelectorAll(".tries");
+        for (let i = 0 ; i < lives.length ; i++) {
+            lives[i].firstChild.src = "images/liveHeart.png";
+        }
+
     }
 
     //Check for win by looking at each of the li elements
@@ -49,12 +81,14 @@ class Game {
     //player has won. 
     checkForWin(){
         let hasWon = true;
-        const phraseUl = getDomElement('#phrase').firstChild;
-        Array(phraseUl.children).forEach(letter => {
-            if (letter.className.includes("hide")) {
+        const phraseLetters = document.querySelectorAll('.letter');
+
+        phraseLetters.forEach(letter => {
+            if ( letter.className.includes("hide") ) {
                 hasWon = false;
             }
         });
+
         return hasWon; 
     }
 
@@ -71,27 +105,39 @@ class Game {
     //in the phrase, and then direct the game accordingly
     handleInteraction(letter){
 
-        const result = this.activePhrase.checkLetter(letter);
-        if ( result ) {
-            this.phrases[this.activePhrase].showMatchedLetter(letter);
-            this.checkForWin();
-        } else {
-            this.removeLife();
+        //Check if letter already pressed
+        let keySelected;
+        const keys = document.querySelectorAll('.key');
+        for (let i = 0 ; i < keys.length ; i++) {
+            if (keys[i].textContent === letter && keys[i].className.length > 3){
+                keySelected = true;
+            }   
         }
 
-        const keyRows = document.querySelectorAll('.keyrow');
-        Array(keyRows).forEach(row => {
-            Array(keyRows.children).forEach(key => {
-                key.className = result ? "key chosen" : "key wrong";
-            })
-        })
+        //Ignore key press if the letter has already been pressed
+        if ( !keySelected ) {
+            //Check if letter guessed by user was in the phrase
+            const result = this.phrases[this.activePhrase].checkLetter(letter);
+            if ( result ) {
+                this.phrases[this.activePhrase].showMatchedLetter(letter);
+                this.checkForWin();
+            } else {
+                this.removeLife();
+            }
 
-        //Disable the selected letter onscreen keyboard button
-        //if wrong -> set wrong css clss and call removeLife();
+            //Find key pressed among the button keys and allocate
+            //either the chosen or wrong class
+            const keys = document.querySelectorAll('.key');
+            keys.forEach(key => {
+                if ( key.textContent === letter ) {
+                    key.className = result ? "key chosen" : "key wrong";
+                }
+            });
 
-        //If correct -> add chosen css class to letter kyboard button
-        //call showMatchedLetter on the phrase and then call checkForWin*)
-        if ( this.checkForWin() ) this.gameOver();
+            
+            if ( this.checkForWin() ) this.gameOver();
+
+        }
     }
 }
 
