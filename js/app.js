@@ -8,7 +8,9 @@ const sampleData =
     "How are you",
     "I am fine",
     "It takes one to know one",
-    "Howdy do"
+    "Howdy do",
+    "!invalid a$$ay to test",
+    "who art thou"
 ];
 
 
